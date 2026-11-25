@@ -1,0 +1,408 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Haushaltsbuch</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Haushalt">
+<meta name="theme-color" content="#3346b8">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icons/icon-180.png">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: Kopf mit Monatswahl, Monatsbilanz, dann Erfassen + Kategorien links, Buchungen rechts */
+:root{
+  --bg:#f3f5f8; --surface:#ffffff; --line:#dfe3ea; --fg:#1b2130; --muted:#5f6878;
+  --accent:#3346b8; --accent-soft:#e6e9fb; --in:#1d7a4f; --in-soft:#e1f3ea; --out:#b23a3a; --out-soft:#f8e4e4;
+  --font-ui:"Instrument Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --font-num:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Menlo,monospace;
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --bg:#12151c; --surface:#1a1f29; --line:#2b3240; --fg:#e7eaf1; --muted:#98a1b2;
+  --accent:#8c9bff; --accent-soft:#252c4d; --in:#5fcf97; --in-soft:#173126; --out:#f08484; --out-soft:#3a1f22; color-scheme:dark}}
+:root[data-theme="dark"]{
+  --bg:#12151c; --surface:#1a1f29; --line:#2b3240; --fg:#e7eaf1; --muted:#98a1b2;
+  --accent:#8c9bff; --accent-soft:#252c4d; --in:#5fcf97; --in-soft:#173126; --out:#f08484; --out-soft:#3a1f22; color-scheme:dark}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font-family:var(--font-ui);font-size:15px;line-height:1.5}
+.wrap{max-width:1080px;margin:0 auto;padding-block:20px 48px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));display:flex;flex-direction:column;gap:20px}
+header{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px}
+h1{font-size:1.5rem;margin:0;letter-spacing:-.01em;text-wrap:balance}
+h2{font-size:.78rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px;font-weight:600}
+.month{display:flex;align-items:center;gap:6px}
+.month span{min-width:9.5em;text-align:center;font-weight:600}
+button{font:inherit;cursor:pointer}
+.iconbtn{border:1px solid var(--line);background:var(--surface);color:var(--fg);border-radius:8px;width:36px;height:36px;font-size:1.1rem;line-height:1}
+.iconbtn:hover{border-color:var(--accent)}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.status{font-size:.85rem;color:var(--muted);padding:8px 12px;border-radius:8px;background:var(--accent-soft)}
+.totals{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px}
+.tot{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:14px 16px}
+.tot .lbl{font-size:.8rem;color:var(--muted)}
+.tot .val{font-family:var(--font-num);font-size:1.45rem;font-weight:500;font-variant-numeric:tabular-nums;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tot.in .val{color:var(--in)} .tot.out .val{color:var(--out)}
+.tot.bal{background:var(--accent-soft);border-color:transparent}
+.grid{display:grid;grid-template-columns:minmax(0,340px) minmax(0,1fr);gap:20px;align-items:start}
+.col{display:flex;flex-direction:column;gap:20px;min-width:0}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:var(--r);padding:16px}
+form{display:flex;flex-direction:column;gap:12px}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg label{text-align:center;padding:8px;cursor:pointer;font-weight:600;color:var(--muted)}
+.seg input:checked+label.o{background:var(--out-soft);color:var(--out)}
+.seg input:checked+label.i{background:var(--in-soft);color:var(--in)}
+.seg input:focus-visible+label{outline:2px solid var(--accent);outline-offset:-2px}
+.field{display:flex;flex-direction:column;gap:4px}
+.field>label{font-size:.8rem;color:var(--muted);font-weight:500}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+input[type=text],input[type=date],input[type=number],select{font:inherit;color:var(--fg);background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:8px 10px;width:100%;min-width:0}
+#amount{font-family:var(--font-num);font-size:1.15rem}
+.primary{background:var(--accent);color:#fff;border:0;border-radius:8px;padding:10px 14px;font-weight:600}
+:root[data-theme="dark"] .primary{color:#10132a}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .primary{color:#10132a}}
+.primary:disabled{opacity:.5;cursor:not-allowed}
+.formmsg{font-size:.85rem;color:var(--out);min-height:1.2em;margin:0}
+.cats{display:flex;flex-direction:column;gap:10px}
+.cat{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;font-size:.9rem}
+.cat .amt{font-family:var(--font-num);font-variant-numeric:tabular-nums}
+.bar{grid-column:1/-1;height:6px;background:var(--bg);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--out);border-radius:3px}
+.empty{color:var(--muted);font-size:.9rem;margin:0}
+.listhead{display:flex;flex-wrap:wrap;justify-content:space-between;align-items:center;gap:8px;margin-bottom:8px}
+.listhead h2{margin:0}
+.listhead select{width:auto}
+ul.entries{list-style:none;margin:0;padding:0}
+.day{font-size:.78rem;color:var(--muted);font-weight:600;padding:12px 0 4px;border-bottom:1px solid var(--line)}
+li.e{display:grid;grid-template-columns:minmax(0,1fr) auto auto;align-items:center;gap:4px 12px;padding:10px 0;border-bottom:1px solid var(--line)}
+li.e .t{font-weight:500;overflow-wrap:anywhere}
+li.e .m{font-size:.8rem;color:var(--muted);overflow-wrap:anywhere}
+li.e .a{font-family:var(--font-num);font-variant-numeric:tabular-nums;font-weight:500;white-space:nowrap}
+li.e .a.in{color:var(--in)} li.e .a.out{color:var(--out)}
+.del{border:0;background:none;color:var(--muted);padding:4px 6px;border-radius:6px;font-size:.8rem}
+.del:hover{color:var(--out);background:var(--out-soft)}
+.del.confirm{color:#fff;background:var(--out)}
+.emptybox{text-align:center;padding:32px 12px;color:var(--muted)}
+.emptybox strong{display:block;color:var(--fg);margin-bottom:4px}
+@media (max-width:760px){.grid{grid-template-columns:minmax(0,1fr)}}
+@media (max-width:520px){.totals{grid-template-columns:1fr 1fr}.tot.bal{grid-column:1/-1}.tot .val{font-size:1.2rem}}
+@media (prefers-reduced-motion:no-preference){.bar i{transition:width .3s ease}}
+</style>
+<style>
+:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+body{margin:0;-webkit-text-size-adjust:100%}
+.tools{display:flex;flex-direction:column;gap:10px}
+.tools p{margin:0;font-size:.85rem;color:var(--muted)}
+.btnrow{display:flex;flex-wrap:wrap;gap:8px}
+.ghost{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:8px;padding:8px 12px;font-weight:500}
+.ghost:hover{border-color:var(--accent)}
+.warn{background:var(--out-soft);color:var(--out)}
+.ok{background:var(--in-soft);color:var(--in)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1>Haushaltsbuch</h1>
+    <div class="month">
+      <button class="iconbtn" id="prev" aria-label="Vorheriger Monat">‹</button>
+      <span id="monthLabel">…</span>
+      <button class="iconbtn" id="next" aria-label="Nächster Monat">›</button>
+    </div>
+  </header>
+
+  <div class="status" id="status" hidden></div>
+
+  <section class="totals" aria-label="Monatsbilanz">
+    <div class="tot in"><div class="lbl">Einnahmen</div><div class="val" id="tIn">0,00 €</div></div>
+    <div class="tot out"><div class="lbl">Ausgaben</div><div class="val" id="tOut">0,00 €</div></div>
+    <div class="tot bal"><div class="lbl">Übrig im Monat</div><div class="val" id="tBal">0,00 €</div></div>
+  </section>
+
+  <div class="grid">
+    <div class="col">
+      <section class="panel">
+        <h2>Neue Buchung</h2>
+        <form id="form" novalidate>
+          <div class="seg" role="radiogroup" aria-label="Art">
+            <input type="radio" name="kind" id="kOut" value="out" checked><label for="kOut" class="o">Ausgabe</label>
+            <input type="radio" name="kind" id="kIn" value="in"><label for="kIn" class="i">Einnahme</label>
+          </div>
+          <div class="row2">
+            <div class="field"><label for="amount">Betrag (€)</label><input type="text" inputmode="decimal" id="amount" placeholder="0,00" autocomplete="off"></div>
+            <div class="field"><label for="date">Datum</label><input type="date" id="date"></div>
+          </div>
+          <div class="field"><label for="cat">Kategorie</label><select id="cat"></select></div>
+          <div class="field"><label for="note">Beschreibung</label><input type="text" id="note" maxlength="120" placeholder="z. B. Wocheneinkauf Rewe"></div>
+          <div class="field"><label for="who">Bezahlt von / für</label><input type="text" id="who" maxlength="40" placeholder="z. B. Anna, Gemeinsam" list="whoList"><datalist id="whoList"></datalist></div>
+          <p class="formmsg" id="formMsg" role="alert"></p>
+          <button class="primary" type="submit" id="save">Buchung speichern</button>
+        </form>
+      </section>
+
+      <section class="panel">
+        <h2>Ausgaben nach Kategorie</h2>
+        <div class="cats" id="cats"><p class="empty">Noch keine Ausgaben in diesem Monat.</p></div>
+      </section>
+
+      <section class="panel tools">
+        <h2 style="margin:0">Sicherung &amp; Export</h2>
+        <p id="backupInfo">Die Buchungen liegen nur auf diesem Gerät.</p>
+        <div class="btnrow">
+          <button class="ghost" type="button" id="btnBackup">Sicherung speichern</button>
+          <button class="ghost" type="button" id="btnRestore">Sicherung laden</button>
+          <button class="ghost" type="button" id="btnCsv">Monat als CSV</button>
+        </div>
+        <input type="file" id="fileIn" accept=".json,application/json" hidden>
+        <p>Eine geladene Sicherung wird mit den vorhandenen Buchungen zusammengeführt. So könnt ihr auch die Einträge von zwei Handys zusammenlegen.</p>
+      </section>
+    </div>
+
+    <section class="panel col" style="gap:0">
+      <div class="listhead">
+        <h2>Buchungen</h2>
+        <select id="filter" aria-label="Filter">
+          <option value="all">Alle</option>
+          <option value="out">Nur Ausgaben</option>
+          <option value="in">Nur Einnahmen</option>
+        </select>
+      </div>
+      <ul class="entries" id="list"></ul>
+    </section>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEY = "haushaltsbuch.v1";
+  const CATS = {
+    out:["Lebensmittel","Miete & Nebenkosten","Strom & Internet","Versicherungen","Mobilität","Kinder","Gesundheit","Kleidung","Freizeit & Ausgehen","Urlaub","Haushalt","Abos & Verträge","Geschenke","Sparen","Sonstiges"],
+    in:["Gehalt","Kindergeld","Nebenjob","Erstattung","Zinsen","Geschenk","Sonstiges"]
+  };
+  const eur = new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"});
+  const monthFmt = new Intl.DateTimeFormat("de-DE",{month:"long",year:"numeric"});
+  const dayFmt = new Intl.DateTimeFormat("de-DE",{weekday:"short",day:"numeric",month:"long"});
+  const dateFmt = new Intl.DateTimeFormat("de-DE",{day:"numeric",month:"long",year:"numeric"});
+  const $ = id => document.getElementById(id);
+  const pad = n => String(n).padStart(2,"0");
+  const todayStr = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+
+  // ---------- Speicher ----------
+  let state = { entries: [], deleted: [], lastBackup: 0 };
+  let storageOk = true;
+  function clean(e){
+    if (!e || typeof e.amount!=="number" || typeof e.date!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || !e.id) return null;
+    return {id:String(e.id), kind:e.kind==="in"?"in":"out", amount:Math.abs(Math.round(e.amount)), date:e.date,
+      cat:String(e.cat||"Sonstiges").slice(0,60), note:String(e.note||"").slice(0,120), who:String(e.who||"").slice(0,40), created:Number(e.created)||0};
+  }
+  function load(){
+    try {
+      const raw = JSON.parse(localStorage.getItem(KEY) || "null");
+      if (raw && Array.isArray(raw.entries)) {
+        state.entries = raw.entries.map(clean).filter(Boolean);
+        state.deleted = Array.isArray(raw.deleted) ? raw.deleted.map(String).slice(-2000) : [];
+        state.lastBackup = Number(raw.lastBackup) || 0;
+      }
+    } catch(_) { storageOk = false; }
+  }
+  function persist(){
+    try { localStorage.setItem(KEY, JSON.stringify(state)); storageOk = true; }
+    catch(_) { storageOk = false; setStatus("Speichern auf dem Gerät hat nicht geklappt. Ist der Speicher voll oder ein privates Fenster offen?", "warn"); }
+  }
+  load();
+  // Safari bitten, die Daten nicht automatisch zu löschen
+  try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(_){}
+
+  const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+
+  // ---------- Anzeige ----------
+  const now = new Date();
+  let ym = {y:now.getFullYear(), m:now.getMonth()};
+  const monthKey = () => ym.y+"-"+pad(ym.m+1);
+  $("date").value = todayStr();
+
+  function setStatus(text, cls){ const el=$("status"); el.textContent = text || ""; el.className = "status" + (cls ? " "+cls : ""); el.hidden = !text; }
+
+  function fillCats(){
+    const kind = document.querySelector('input[name=kind]:checked').value;
+    const sel = $("cat"); sel.textContent = "";
+    for (const c of CATS[kind]) { const o=document.createElement("option"); o.value=o.textContent=c; sel.appendChild(o); }
+  }
+  document.querySelectorAll('input[name=kind]').forEach(r => r.addEventListener("change", fillCats));
+  fillCats();
+
+  function parseAmount(s){
+    s = String(s).trim().replace(/\s|€/g,"");
+    if (!s) return NaN;
+    if (s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
+    const v = Number(s);
+    return Number.isFinite(v) ? Math.round(v*100) : NaN;
+  }
+
+  function monthEntries(){ const mk=monthKey(); return state.entries.filter(e => e.date.slice(0,7)===mk); }
+
+  function render(){
+    const d = new Date(ym.y, ym.m, 1);
+    $("monthLabel").textContent = monthFmt.format(d);
+    const inMonth = monthEntries();
+    let tin=0, tout=0; const byCat = {};
+    for (const e of inMonth){
+      if (e.kind==="in") tin += e.amount; else { tout += e.amount; byCat[e.cat]=(byCat[e.cat]||0)+e.amount; }
+    }
+    $("tIn").textContent = eur.format(tin/100);
+    $("tOut").textContent = eur.format(tout/100);
+    $("tBal").textContent = eur.format((tin-tout)/100);
+    $("tBal").style.color = tin-tout < 0 ? "var(--out)" : "var(--fg)";
+
+    const cats = $("cats"); cats.textContent = "";
+    const catList = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
+    if (!catList.length){ const p=document.createElement("p"); p.className="empty"; p.textContent="Noch keine Ausgaben in diesem Monat."; cats.appendChild(p); }
+    const max = catList.length ? catList[0][1] : 1;
+    for (const [c,v] of catList){
+      const row=document.createElement("div"); row.className="cat";
+      const n=document.createElement("span"); n.textContent=c;
+      const a=document.createElement("span"); a.className="amt"; a.textContent=eur.format(v/100)+" · "+Math.round(v/tout*100)+" %";
+      const bar=document.createElement("div"); bar.className="bar"; const i=document.createElement("i"); i.style.width=(v/max*100)+"%"; bar.appendChild(i);
+      row.append(n,a,bar); cats.appendChild(row);
+    }
+
+    const f = $("filter").value;
+    const shown = inMonth.filter(e => f==="all" || e.kind===f)
+      .sort((a,b)=> a.date===b.date ? b.created-a.created : (a.date<b.date?1:-1));
+    const list = $("list"); list.textContent = "";
+    if (!shown.length){
+      const li=document.createElement("li"); li.className="emptybox";
+      const s=document.createElement("strong"); s.textContent = inMonth.length ? "Keine passenden Buchungen" : "Noch nichts eingetragen für "+monthFmt.format(d);
+      const t=document.createElement("span"); t.textContent = inMonth.length ? "Ändere den Filter, um alle Buchungen zu sehen." : "Trage die erste Einnahme oder Ausgabe ein, zum Beispiel das Gehalt oder die Miete.";
+      li.append(s,t); list.appendChild(li);
+    }
+    let lastDay = null;
+    for (const e of shown){
+      if (e.date!==lastDay){
+        lastDay=e.date; const h=document.createElement("li"); h.className="day";
+        const [Y,M,D]=e.date.split("-").map(Number); h.textContent=dayFmt.format(new Date(Y,M-1,D)); list.appendChild(h);
+      }
+      const li=document.createElement("li"); li.className="e";
+      const info=document.createElement("div"); info.style.minWidth="0";
+      const t=document.createElement("div"); t.className="t"; t.textContent = e.note || e.cat;
+      const m=document.createElement("div"); m.className="m"; m.textContent = [e.note ? e.cat : null, e.who].filter(Boolean).join(" · ");
+      info.append(t); if (m.textContent) info.append(m);
+      const a=document.createElement("div"); a.className="a "+(e.kind==="in"?"in":"out");
+      a.textContent=(e.kind==="in"?"+ ":"− ")+eur.format(e.amount/100);
+      const del=document.createElement("button"); del.className="del"; del.type="button"; del.textContent="Löschen";
+      del.setAttribute("aria-label","Buchung löschen: "+(e.note||e.cat));
+      del.addEventListener("click", ()=>{
+        if (!del.classList.contains("confirm")){ del.classList.add("confirm"); del.textContent="Wirklich?"; setTimeout(()=>{del.classList.remove("confirm"); del.textContent="Löschen";},3000); return; }
+        state.entries = state.entries.filter(x=>x.id!==e.id);
+        state.deleted.push(e.id);
+        persist(); render();
+      });
+      li.append(info,a,del); list.appendChild(li);
+    }
+    renderBackupInfo();
+  }
+
+  function updateWhoList(){
+    const names = [...new Set(state.entries.map(e=>e.who).filter(Boolean))].slice(0,20);
+    const dl=$("whoList"); dl.textContent="";
+    for (const n of names){ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }
+  }
+
+  function renderBackupInfo(){
+    const n = state.entries.length;
+    const el = $("backupInfo");
+    if (!state.lastBackup) el.textContent = n ? n+" Buchungen, nur auf diesem Gerät gespeichert. Noch keine Sicherung gemacht." : "Die Buchungen liegen nur auf diesem Gerät.";
+    else el.textContent = n+" Buchungen auf diesem Gerät. Letzte Sicherung: "+dateFmt.format(new Date(state.lastBackup))+".";
+    const days = state.lastBackup ? (Date.now()-state.lastBackup)/864e5 : Infinity;
+    if (n >= 10 && days > 30 && $("status").hidden) setStatus("Mach mal wieder eine Sicherung (unten bei „Sicherung & Export“) und leg sie in iCloud Drive ab.", "");
+  }
+
+  // ---------- Erfassen ----------
+  $("form").addEventListener("submit", ev=>{
+    ev.preventDefault();
+    const msg=$("formMsg"); msg.textContent="";
+    const amount = parseAmount($("amount").value);
+    if (!(amount>0)){ msg.textContent="Bitte einen Betrag größer als 0 eingeben, z. B. 42,50."; $("amount").focus(); return; }
+    const date = $("date").value;
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ msg.textContent="Bitte ein Datum wählen."; $("date").focus(); return; }
+    state.entries.push({
+      id:newId(), kind: document.querySelector('input[name=kind]:checked').value,
+      amount, date, cat: $("cat").value,
+      note: $("note").value.trim().slice(0,120), who: $("who").value.trim().slice(0,40),
+      created: Date.now()
+    });
+    persist();
+    $("amount").value=""; $("note").value="";
+    const [Y,M]=date.split("-").map(Number); ym={y:Y,m:M-1};
+    updateWhoList(); render();
+    const btn=$("save"); btn.textContent="Gespeichert ✓"; setTimeout(()=>{ btn.textContent="Buchung speichern"; }, 1200);
+  });
+
+  $("prev").addEventListener("click", ()=>{ ym.m--; if(ym.m<0){ym.m=11;ym.y--;} render(); });
+  $("next").addEventListener("click", ()=>{ ym.m++; if(ym.m>11){ym.m=0;ym.y++;} render(); });
+  $("filter").addEventListener("change", render);
+
+  // ---------- Dateien teilen / speichern ----------
+  async function shareFile(filename, text, type){
+    const blob = new Blob([text], {type});
+    try {
+      const file = new File([blob], filename, {type});
+      if (navigator.canShare && navigator.canShare({files:[file]})) { await navigator.share({files:[file], title:filename}); return true; }
+    } catch(err){ if (err && err.name === "AbortError") return false; }
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a"); a.href=url; a.download=filename; document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url), 5000);
+    return true;
+  }
+
+  $("btnBackup").addEventListener("click", async ()=>{
+    const data = JSON.stringify({app:"haushaltsbuch", version:1, exported:new Date().toISOString(), entries:state.entries, deleted:state.deleted}, null, 1);
+    const ok = await shareFile("Haushaltsbuch-Sicherung-"+todayStr()+".json", data, "application/json");
+    if (ok){ state.lastBackup = Date.now(); persist(); setStatus("Sicherung erstellt. Speichere sie am besten in „Dateien“ → iCloud Drive.", "ok"); render(); }
+  });
+
+  $("btnRestore").addEventListener("click", ()=>$("fileIn").click());
+  $("fileIn").addEventListener("change", async ()=>{
+    const f = $("fileIn").files[0]; $("fileIn").value = "";
+    if (!f) return;
+    try {
+      const raw = JSON.parse(await f.text());
+      if (!raw || raw.app!=="haushaltsbuch" || !Array.isArray(raw.entries)) throw new Error("format");
+      const gone = new Set([...state.deleted, ...(Array.isArray(raw.deleted)?raw.deleted.map(String):[])]);
+      const byId = new Map(state.entries.map(e=>[e.id,e]));
+      let added = 0;
+      for (const e of raw.entries.map(clean).filter(Boolean)) { if (!byId.has(e.id) && !gone.has(e.id)) { byId.set(e.id,e); added++; } }
+      const before = state.entries.length;
+      state.entries = [...byId.values()].filter(e=>!gone.has(e.id));
+      state.deleted = [...gone].slice(-2000);
+      const removed = before + added - state.entries.length;
+      persist(); updateWhoList(); render();
+      setStatus(added+" Buchungen hinzugefügt"+(removed>0 ? ", "+removed+" gelöschte entfernt" : "")+". Doppelte wurden übersprungen.", "ok");
+    } catch(_) {
+      setStatus("Diese Datei ist keine Haushaltsbuch-Sicherung. Wähle eine Datei, die mit „Haushaltsbuch-Sicherung“ beginnt.", "warn");
+    }
+  });
+
+  $("btnCsv").addEventListener("click", ()=>{
+    const rows = monthEntries().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    const q = s => '"'+String(s).replace(/"/g,'""')+'"';
+    const lines = ["Datum;Art;Kategorie;Beschreibung;Person;Betrag"];
+    for (const e of rows){
+      const [Y,M,D] = e.date.split("-");
+      lines.push([D+"."+M+"."+Y, e.kind==="in"?"Einnahme":"Ausgabe", q(e.cat), q(e.note), q(e.who), ((e.kind==="in"?1:-1)*e.amount/100).toFixed(2).replace(".",",")].join(";"));
+    }
+    shareFile("Haushaltsbuch-"+monthKey()+".csv", "﻿"+lines.join("\r\n"), "text/csv");
+  });
+
+  if (!storageOk) setStatus("Die gespeicherten Buchungen konnten nicht gelesen werden. Ist ein privates Fenster offen?", "warn");
+  updateWhoList(); render();
+
+  if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
+})();
+</script>
+</body>
+</html>

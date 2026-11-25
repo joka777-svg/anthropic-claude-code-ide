@@ -1,0 +1,38 @@
+# Veröffentlicht das Haushaltsbuch auf GitHub Pages (iPhone: in Safari öffnen -> Teilen -> „Zum Home-Bildschirm“).
+# Vorher einmalig: Repository -> Settings -> Pages -> Source: „GitHub Actions“.
+# Läuft automatisch bei Änderungen an der Web-App und lässt sich unter Actions manuell starten.
+name: Haushaltsbuch veröffentlichen
+
+on:
+  push:
+    branches: ['claude/**', 'main']
+    paths: ['www/**', '.github/workflows/web.yml']
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/configure-pages@v6
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: www
+      # GitHub registriert das hochgeladene Paket manchmal mit Verzögerung –
+      # ohne kurze Pause findet deploy-pages es gelegentlich nicht.
+      - name: Kurz warten, bis das Paket registriert ist
+        run: sleep 20
+      - id: deployment
+        uses: actions/deploy-pages@v5

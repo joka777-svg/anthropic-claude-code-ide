@@ -130,6 +130,24 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
 .small.danger.confirm{background:var(--out);border-color:var(--out);color:#fff}
 .fixsum{font-size:.85rem;color:var(--muted);margin:-4px 0 8px}
 .fixsum b{font-family:var(--font-num);color:var(--fg);font-weight:500}
+[hidden]{display:none!important}
+.viewrow{display:flex;gap:8px;align-items:stretch;flex-wrap:wrap}
+.viewrow .viewtabs{flex:1 1 260px}
+.setup{display:flex;flex-direction:column;gap:12px;border-color:var(--accent)}
+.setup p{margin:0;color:var(--muted);font-size:.9rem}
+.sheet{position:fixed;inset:0;z-index:50;background:rgba(10,14,30,.45);display:flex;align-items:flex-end;justify-content:center;padding-top:calc(env(safe-area-inset-top,0px) + 24px)}
+.sheet .box{background:var(--surface);color:var(--fg);width:100%;max-width:480px;max-height:100%;overflow:auto;border-radius:16px 16px 0 0;padding:18px max(16px,env(safe-area-inset-right,0px)) calc(18px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));display:flex;flex-direction:column;gap:12px;box-shadow:0 -8px 30px rgba(0,0,0,.2)}
+@media (min-width:600px){.sheet{align-items:center}.sheet .box{border-radius:16px;max-height:calc(100% - 48px)}}
+.sheet .top{display:flex;justify-content:space-between;align-items:center}
+.sheet h3{margin:0;font-size:1.1rem}
+.sheet fieldset{border:1px solid var(--line);border-radius:8px;padding:8px 12px;margin:0;display:flex;flex-direction:column;gap:6px}
+.sheet legend{font-size:.8rem;color:var(--muted);padding:0 4px}
+.sheet .radio{display:flex;align-items:center;gap:8px;font-size:.9rem}
+.sheet .radio input{accent-color:var(--accent);width:18px;height:18px}
+.danger-btn{border:1px solid var(--out);background:transparent;color:var(--out);border-radius:8px;padding:9px 12px;font-weight:600}
+.danger-btn.confirm{background:var(--out);color:#fff}
+.sep{border:0;border-top:1px solid var(--line);margin:4px 0;width:100%}
+.del{border:1px solid var(--line)}
 </style>
 </head>
 <body>
@@ -143,11 +161,24 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
     </div>
   </header>
 
-  <div class="seg seg3 viewtabs" role="radiogroup" aria-label="Ansicht">
-    <input type="radio" name="view" id="vAll" value="all" checked><label for="vAll" class="p">Gesamt</label>
-    <input type="radio" name="view" id="vA" value="a"><label for="vA" class="p" id="vALabel">Ich</label>
-    <input type="radio" name="view" id="vB" value="b"><label for="vB" class="p" id="vBLabel">Meine Frau</label>
+  <div class="viewrow">
+    <div class="seg seg3 viewtabs" role="radiogroup" aria-label="Ansicht">
+      <input type="radio" name="view" id="vAll" value="all" checked><label for="vAll" class="p">Gesamt</label>
+      <input type="radio" name="view" id="vA" value="a"><label for="vA" class="p" id="vALabel">Ich</label>
+      <input type="radio" name="view" id="vB" value="b"><label for="vB" class="p" id="vBLabel">Meine Frau</label>
+    </div>
+    <button class="ghost" type="button" id="btnNames">Namen ändern</button>
   </div>
+
+  <section class="panel setup" id="setup" hidden>
+    <h2 style="margin:0">Wie heißt ihr?</h2>
+    <p>Die Namen erscheinen oben in der Umschaltung und bei jeder Buchung.</p>
+    <div class="row2">
+      <div class="field"><label for="sNameA">Name 1</label><input type="text" id="sNameA" maxlength="20" placeholder="z. B. Jonas" autocomplete="off"></div>
+      <div class="field"><label for="sNameB">Name 2</label><input type="text" id="sNameB" maxlength="20" placeholder="z. B. Lea" autocomplete="off"></div>
+    </div>
+    <div class="btnrow"><button class="primary" type="button" id="sSave">Namen speichern</button><button class="ghost" type="button" id="sLater">Später</button></div>
+  </section>
 
   <div class="status" id="status" hidden></div>
 
@@ -216,6 +247,9 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
         </div>
         <input type="file" id="fileIn" accept=".json,application/json" hidden>
         <p>Eine geladene Sicherung wird mit den vorhandenen Buchungen zusammengeführt. So könnt ihr auch die Einträge von zwei Handys zusammenlegen.</p>
+        <hr class="sep">
+        <p>Alles löschen entfernt alle Buchungen, Fixkosten und Namen von diesem Gerät. Mach vorher eine Sicherung.</p>
+        <div class="btnrow"><button class="danger-btn" type="button" id="btnWipe">Alle Daten löschen</button></div>
       </section>
     </div>
 
@@ -232,6 +266,44 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
       <ul class="entries" id="list"></ul>
     </section>
   </div>
+</div>
+
+<div class="sheet" id="editor" hidden role="dialog" aria-modal="true" aria-labelledby="eTitle">
+  <form class="box" id="eForm" novalidate>
+    <div class="top"><h3 id="eTitle">Buchung bearbeiten</h3><button class="iconbtn" type="button" id="eClose" aria-label="Schließen">×</button></div>
+    <div class="seg" role="radiogroup" aria-label="Art">
+      <input type="radio" name="ekind" id="eKOut" value="out"><label for="eKOut" class="o">Ausgabe</label>
+      <input type="radio" name="ekind" id="eKIn" value="in"><label for="eKIn" class="i">Einnahme</label>
+    </div>
+    <div class="field">
+      <label>Wer?</label>
+      <div class="seg seg3" role="radiogroup" aria-label="Person">
+        <input type="radio" name="eperson" id="ePA" value="a"><label for="ePA" class="p" id="ePALabel">Ich</label>
+        <input type="radio" name="eperson" id="ePB" value="b"><label for="ePB" class="p" id="ePBLabel">Meine Frau</label>
+        <input type="radio" name="eperson" id="ePBoth" value="both"><label for="ePBoth" class="p">Gemeinsam</label>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="field"><label for="eAmount">Betrag (€)</label><input type="text" inputmode="decimal" id="eAmount" autocomplete="off"></div>
+      <div class="field" id="eDateField"><label for="eDate">Datum</label><input type="date" id="eDate"></div>
+      <div class="field" id="eDayField"><label for="eDay">Tag im Monat</label><input type="number" id="eDay" min="1" max="31" inputmode="numeric"></div>
+    </div>
+    <div class="field"><label for="eCat">Kategorie</label><select id="eCat"></select></div>
+    <div class="field"><label for="eNote">Beschreibung</label><input type="text" id="eNote" maxlength="120"></div>
+    <fieldset id="eFixedOpts">
+      <legend>Änderung gilt</legend>
+      <label class="radio"><input type="radio" name="escope" value="from" checked><span id="eScopeFromLbl">Ab diesem Monat</span></label>
+      <label class="radio"><input type="radio" name="escope" value="all"><span id="eScopeAllLbl">Auch frühere Monate</span></label>
+    </fieldset>
+    <p class="formmsg" id="eMsg" role="alert"></p>
+    <div class="btnrow"><button class="primary" type="submit" style="flex:1">Änderungen speichern</button><button class="ghost" type="button" id="eCancel">Abbrechen</button></div>
+    <hr class="sep">
+    <div class="btnrow">
+      <button class="ghost" type="button" id="eSkip">Nur diesen Monat aussetzen</button>
+      <button class="danger-btn" type="button" id="eEnd">Ab diesem Monat beenden</button>
+      <button class="danger-btn" type="button" id="eDelete">Löschen</button>
+    </div>
+  </form>
 </div>
 
 <script>
@@ -254,7 +326,7 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
   // ---------- Speicher ----------
   // entries: einzelne Buchungen; fixed: Vorlagen für Fixkosten (gelten von "from" bis "to", Monat "YYYY-MM");
   // skips: ausgesetzte Fixkosten einzelner Monate ("fixId:YYYY-MM")
-  let state = { entries: [], fixed: [], skips: [], deleted: [], names: {a:"Ich", b:"Meine Frau"}, lastBackup: 0 };
+  let state = { entries: [], fixed: [], skips: [], deleted: [], names: {a:"Ich", b:"Meine Frau"}, namesSet: false, lastBackup: 0 };
   let storageOk = true;
   const str = (v,n) => String(v==null?"":v).slice(0,n);
   function cleanPerson(p){ return PERSONS.includes(p) ? p : "a"; }
@@ -278,6 +350,7 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
         state.skips = Array.isArray(raw.skips) ? raw.skips.map(String) : [];
         state.deleted = Array.isArray(raw.deleted) ? raw.deleted.map(String).slice(-2000) : [];
         if (raw.names && typeof raw.names==="object") state.names = {a:str(raw.names.a,20)||"Ich", b:str(raw.names.b,20)||"Meine Frau"};
+        state.namesSet = !!raw.namesSet;
         state.lastBackup = Number(raw.lastBackup) || 0;
       }
     } catch(_) { storageOk = false; }
@@ -348,6 +421,7 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
       const n = personName(p);
       $("v"+p.toUpperCase()+"Label").textContent = n;
       $("p"+p.toUpperCase()+"Label").textContent = n;
+      $("eP"+p.toUpperCase()+"Label").textContent = n;
     }
     if (document.activeElement !== $("nameA")) $("nameA").value = state.names.a;
     if (document.activeElement !== $("nameB")) $("nameB").value = state.names.b;
@@ -440,16 +514,8 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
       const a=document.createElement("div"); a.className="a "+(e.kind==="in"?"in":"out");
       a.textContent=(e.kind==="in"?"+ ":"− ")+fmt(share(e,v));
       const btn=document.createElement("button"); btn.className="del"; btn.type="button";
-      if (!e.fixed){
-        btn.textContent="Löschen"; btn.setAttribute("aria-label","Buchung löschen: "+(e.note||e.cat));
-        confirmButton(btn, "Löschen", ()=>{ state.entries = state.entries.filter(x=>x.id!==e.id); state.deleted.push(e.id); persist(); render(); });
-      } else if (!e.skipped){
-        btn.textContent="Aussetzen"; btn.setAttribute("aria-label","Nur in diesem Monat aussetzen: "+(e.note||e.cat));
-        confirmButton(btn, "Aussetzen", ()=>{ state.skips.push(e.fixId+":"+mk); persist(); render(); });
-      } else {
-        btn.textContent="Zurückholen"; btn.setAttribute("aria-label","Wieder mitzählen: "+(e.note||e.cat));
-        btn.addEventListener("click", ()=>{ state.skips = state.skips.filter(s=>s!==e.fixId+":"+mk); persist(); render(); });
-      }
+      btn.textContent="Bearbeiten"; btn.setAttribute("aria-label","Bearbeiten oder löschen: "+(e.note||e.cat));
+      btn.addEventListener("click", ()=>openEditor(e));
       li.append(info,a,btn); list.appendChild(li);
     }
     renderBackupInfo();
@@ -481,29 +547,11 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
       const amt = document.createElement("div"); amt.className="fa"; amt.style.color = f.kind==="in" ? "var(--in)" : "var(--out)";
       amt.textContent = (f.kind==="in"?"+ ":"− ")+fmt(f.amount);
       const acts = document.createElement("div"); acts.className="acts";
-      const edit = document.createElement("button"); edit.type="button"; edit.className="small"; edit.textContent="Betrag ändern";
-      const end = document.createElement("button"); end.type="button"; end.className="small danger"; end.textContent="Beenden";
-      end.title = "Ab "+monthFmt.format(new Date(ym.y,ym.m,1))+" nicht mehr eintragen";
-      edit.addEventListener("click", ()=>{
-        acts.textContent = "";
-        const inp = document.createElement("input"); inp.type="text"; inp.inputMode="decimal"; inp.value=(f.amount/100).toFixed(2).replace(".",","); inp.setAttribute("aria-label","Neuer Betrag");
-        const ok = document.createElement("button"); ok.type="button"; ok.className="small"; ok.textContent="Ab diesem Monat speichern";
-        const cancel = document.createElement("button"); cancel.type="button"; cancel.className="small"; cancel.textContent="Abbrechen";
-        cancel.addEventListener("click", render);
-        ok.addEventListener("click", ()=>{
-          const a = parseAmount(inp.value);
-          if (!(a>0)) { inp.focus(); return; }
-          changeFixedAmount(f.id, a, mk); render();
-          setStatus("Neuer Betrag gilt ab "+monthFmt.format(new Date(ym.y,ym.m,1))+". Frühere Monate bleiben wie sie waren.", "ok");
-        });
-        inp.addEventListener("keydown", ev=>{ if (ev.key==="Enter") ok.click(); });
-        acts.append(inp, ok, cancel); inp.focus(); inp.select();
-      });
-      confirmButton(end, "Beenden", ()=>{
-        endFixed(f.id, mk); render();
-        setStatus("„"+(f.note||f.cat)+"“ wird ab "+monthFmt.format(new Date(ym.y,ym.m,1))+" nicht mehr eingetragen.", "ok");
-      });
-      acts.append(edit, end);
+      const edit = document.createElement("button"); edit.type="button"; edit.className="small"; edit.textContent="Bearbeiten";
+      edit.setAttribute("aria-label","Fixkosten bearbeiten: "+(f.note||f.cat));
+      const skipped = state.skips.includes(f.id+":"+mk);
+      edit.addEventListener("click", ()=>openEditor({fixed:true, fixId:f.id, note:f.note, cat:f.cat, skipped}));
+      acts.append(edit);
       li.append(name, amt, acts); ul.appendChild(li);
     }
   }
@@ -511,21 +559,121 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
   // Fixkosten ab Monat mk beenden (bleibt in früheren Monaten erhalten)
   function endFixed(id, mk){
     const f = state.fixed.find(x=>x.id===id); if (!f) return;
-    if (f.from >= mk) { state.fixed = state.fixed.filter(x=>x.id!==id); state.deleted.push("fixed:"+id); }
-    else f.to = shiftMonth(mk,-1);
+    if (f.from >= mk) { deleteFixed(id); return; }
+    f.to = shiftMonth(mk,-1);
     persist();
   }
-  // Betrag ab Monat mk ändern: alte Vorlage endet im Vormonat, neue beginnt in mk
-  function changeFixedAmount(id, amount, mk){
+  // Fixkosten komplett löschen, auch in früheren Monaten
+  function deleteFixed(id){
+    state.fixed = state.fixed.filter(x=>x.id!==id);
+    state.skips = state.skips.filter(s=>!s.startsWith(id+":"));
+    state.deleted.push("fixed:"+id);
+    persist();
+  }
+  // Fixkosten ab Monat mk ändern: alte Vorlage endet im Vormonat, neue beginnt in mk
+  function changeFixed(id, patch, mk, allMonths){
     const f = state.fixed.find(x=>x.id===id); if (!f) return;
-    if (f.from >= mk) { f.amount = amount; }
+    if (allMonths || f.from >= mk) { Object.assign(f, patch); }
     else {
-      const nf = {...f, id:newId(), amount, from:mk, created:Date.now()};
+      const nf = {...f, ...patch, id:newId(), from:mk, created:Date.now()};
+      state.skips = state.skips.map(s => { const [sid,sm]=s.split(":"); return sid===id && sm>=mk ? nf.id+":"+sm : s; });
       f.to = shiftMonth(mk,-1);
       state.fixed.push(nf);
     }
     persist();
   }
+
+  // ---------- Bearbeiten ----------
+  const ed = { item:null, mk:null };
+  const sheet = $("editor");
+  function setRadio(name, value){ const el = document.querySelector('input[name='+name+'][value="'+value+'"]'); if (el) el.checked = true; }
+  const radioVal = name => document.querySelector('input[name='+name+']:checked').value;
+  function fillEditorCats(kind, current){
+    const sel = $("eCat"); sel.textContent = "";
+    const list = CATS[kind].slice(); if (current && !list.includes(current)) list.unshift(current);
+    for (const c of list){ const o=document.createElement("option"); o.value=o.textContent=c; sel.appendChild(o); }
+    if (current) sel.value = current;
+  }
+  function openEditor(item){
+    ed.item = item; ed.mk = monthKey();
+    const isFixed = !!item.fixed;
+    const f = isFixed ? state.fixed.find(x=>x.id===item.fixId) : null;
+    const src = isFixed ? f : state.entries.find(x=>x.id===item.id);
+    if (!src) return;
+    $("eTitle").textContent = isFixed ? "Fixkosten bearbeiten" : "Buchung bearbeiten";
+    setRadio("ekind", src.kind); fillEditorCats(src.kind, src.cat);
+    setRadio("eperson", src.person);
+    $("eAmount").value = (src.amount/100).toFixed(2).replace(".",",");
+    $("eNote").value = src.note;
+    $("eDateField").hidden = isFixed; $("eDayField").hidden = !isFixed;
+    if (isFixed) $("eDay").value = src.day; else $("eDate").value = src.date;
+    $("eFixedOpts").hidden = !isFixed;
+    const monthName = monthFmt.format(new Date(ym.y, ym.m, 1));
+    $("eScopeFromLbl").textContent = "Ab "+monthName;
+    $("eScopeAllLbl").textContent = "Auch frühere Monate (seit "+monthFmt.format(new Date(+f?.from.slice(0,4)||ym.y, (+f?.from.slice(5)||ym.m+1)-1, 1))+")";
+    setRadio("escope","from");
+    $("eSkip").hidden = !isFixed; $("eEnd").hidden = !isFixed || (f && f.from >= ed.mk);
+    if (isFixed){ $("eSkip").textContent = item.skipped ? "In "+monthName+" wieder mitzählen" : "Nur in "+monthName+" aussetzen"; $("eEnd").textContent = "Ab "+monthName+" beenden"; }
+    $("eDelete").textContent = isFixed ? "Ganz löschen (auch frühere Monate)" : "Buchung löschen";
+    resetConfirm($("eDelete")); resetConfirm($("eEnd"));
+    $("eMsg").textContent = "";
+    sheet.hidden = false; document.body.style.overflow = "hidden";
+    setTimeout(()=>$("eAmount").focus(), 50);
+  }
+  function closeEditor(){ sheet.hidden = true; document.body.style.overflow = ""; ed.item = null; }
+  function resetConfirm(btn){ btn.classList.remove("confirm"); if (btn.dataset.label) btn.textContent = btn.dataset.label; delete btn.dataset.label; }
+  function needConfirm(btn){
+    if (btn.classList.contains("confirm")) return false;
+    btn.dataset.label = btn.textContent; btn.classList.add("confirm"); btn.textContent = "Wirklich? Nochmal tippen";
+    setTimeout(()=>resetConfirm(btn), 4000); return true;
+  }
+  document.querySelectorAll('input[name=ekind]').forEach(r => r.addEventListener("change", ()=>fillEditorCats(radioVal("ekind"), null)));
+  $("eCancel").addEventListener("click", closeEditor);
+  $("eClose").addEventListener("click", closeEditor);
+  sheet.addEventListener("click", ev=>{ if (ev.target === sheet) closeEditor(); });
+  document.addEventListener("keydown", ev=>{ if (ev.key==="Escape" && !sheet.hidden) closeEditor(); });
+
+  $("eForm").addEventListener("submit", ev=>{
+    ev.preventDefault();
+    const it = ed.item; if (!it) return;
+    const msg = $("eMsg"); msg.textContent = "";
+    const amount = parseAmount($("eAmount").value);
+    if (!(amount>0)){ msg.textContent="Bitte einen Betrag größer als 0 eingeben."; $("eAmount").focus(); return; }
+    const patch = { kind:radioVal("ekind"), person:radioVal("eperson"), amount, cat:$("eCat").value, note:$("eNote").value.trim().slice(0,120) };
+    if (it.fixed){
+      const day = Math.round(Number($("eDay").value));
+      if (!(day>=1 && day<=31)){ msg.textContent="Bitte einen Tag zwischen 1 und 31 eingeben."; $("eDay").focus(); return; }
+      patch.day = day;
+      const all = radioVal("escope")==="all";
+      changeFixed(it.fixId, patch, ed.mk, all);
+      setStatus(all ? "Fixkosten geändert, auch in früheren Monaten." : "Fixkosten geändert ab "+monthFmt.format(new Date(ym.y,ym.m,1))+". Frühere Monate bleiben wie sie waren.", "ok");
+    } else {
+      const date = $("eDate").value;
+      if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ msg.textContent="Bitte ein Datum wählen."; $("eDate").focus(); return; }
+      const e = state.entries.find(x=>x.id===it.id); if (!e) { closeEditor(); return; }
+      Object.assign(e, patch, {date}); persist();
+      setStatus("Buchung geändert.", "ok");
+    }
+    closeEditor(); render();
+  });
+  $("eDelete").addEventListener("click", ()=>{
+    const it = ed.item; if (!it || needConfirm($("eDelete"))) return;
+    if (it.fixed) { deleteFixed(it.fixId); setStatus("Fixkosten „"+(it.note||it.cat)+"“ gelöscht, in allen Monaten.", "ok"); }
+    else { state.entries = state.entries.filter(x=>x.id!==it.id); state.deleted.push(it.id); persist(); setStatus("Buchung gelöscht.", "ok"); }
+    closeEditor(); render();
+  });
+  $("eEnd").addEventListener("click", ()=>{
+    const it = ed.item; if (!it || needConfirm($("eEnd"))) return;
+    endFixed(it.fixId, ed.mk);
+    setStatus("„"+(it.note||it.cat)+"“ wird ab "+monthFmt.format(new Date(ym.y,ym.m,1))+" nicht mehr eingetragen.", "ok");
+    closeEditor(); render();
+  });
+  $("eSkip").addEventListener("click", ()=>{
+    const it = ed.item; if (!it) return;
+    const sid = it.fixId+":"+ed.mk;
+    if (it.skipped) state.skips = state.skips.filter(s=>s!==sid); else state.skips.push(sid);
+    persist(); closeEditor(); render();
+  });
 
   function renderBackupInfo(){
     const n = state.entries.length, k = state.fixed.length;
@@ -573,8 +721,30 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
 
   for (const p of ["a","b"]){
     const inp = $("name"+p.toUpperCase());
-    inp.addEventListener("change", ()=>{ state.names[p] = inp.value.trim().slice(0,20) || (p==="a"?"Ich":"Meine Frau"); persist(); render(); });
+    inp.addEventListener("change", ()=>{ state.names[p] = inp.value.trim().slice(0,20) || (p==="a"?"Ich":"Meine Frau"); state.namesSet = true; persist(); render(); });
   }
+
+  // Namen-Karte oben: beim ersten Start und über „Namen ändern“
+  function showSetup(show){
+    $("setup").hidden = !show;
+    if (show){ $("sNameA").value = state.namesSet ? state.names.a : ""; $("sNameB").value = state.namesSet ? state.names.b : ""; $("sNameA").focus(); }
+  }
+  $("btnNames").addEventListener("click", ()=>showSetup($("setup").hidden));
+  $("sLater").addEventListener("click", ()=>showSetup(false));
+  $("sSave").addEventListener("click", ()=>{
+    const a = $("sNameA").value.trim().slice(0,20), b = $("sNameB").value.trim().slice(0,20);
+    if (a) state.names.a = a; if (b) state.names.b = b;
+    state.namesSet = true; persist(); showSetup(false); render();
+    setStatus("Namen gespeichert.", "ok");
+  });
+  ["sNameA","sNameB"].forEach(id => $(id).addEventListener("keydown", ev=>{ if (ev.key==="Enter") $("sSave").click(); }));
+
+  $("btnWipe").addEventListener("click", ()=>{
+    if (needConfirm($("btnWipe"))) return;
+    state = { entries: [], fixed: [], skips: [], deleted: [], names: {a:"Ich", b:"Meine Frau"}, namesSet: false, lastBackup: 0 };
+    persist(); render(); showSetup(true);
+    setStatus("Alle Daten auf diesem Gerät wurden gelöscht.", "ok");
+  });
 
   // ---------- Dateien teilen / speichern ----------
   async function shareFile(filename, text, type){
@@ -591,7 +761,7 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
 
   $("btnBackup").addEventListener("click", async ()=>{
     const data = JSON.stringify({app:"haushaltsbuch", version:2, exported:new Date().toISOString(),
-      names:state.names, entries:state.entries, fixed:state.fixed, skips:state.skips, deleted:state.deleted}, null, 1);
+      names:state.names, namesSet:state.namesSet, entries:state.entries, fixed:state.fixed, skips:state.skips, deleted:state.deleted}, null, 1);
     const ok = await shareFile("Haushaltsbuch-Sicherung-"+todayStr()+".json", data, "application/json");
     if (ok){ state.lastBackup = Date.now(); persist(); setStatus("Sicherung erstellt. Speichere sie am besten in „Dateien“ → iCloud Drive.", "ok"); render(); }
   });
@@ -619,6 +789,7 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
         else if (f.to && (!mine.to || f.to < mine.to)) mine.to = f.to;
       }
       state.fixed = [...fx.values()].filter(f=>!gone.has("fixed:"+f.id));
+      if (!state.namesSet && raw.names && raw.names.a) { state.names = {a:str(raw.names.a,20), b:str(raw.names.b,20)||"Meine Frau"}; state.namesSet = true; showSetup(false); }
       state.skips = [...new Set([...state.skips, ...(Array.isArray(raw.skips)?raw.skips.map(String):[])])];
       state.deleted = [...gone].slice(-2000);
       persist(); render();
@@ -640,6 +811,7 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
     shareFile("Haushaltsbuch-"+mk+".csv", "﻿"+lines.join("\r\n"), "text/csv");
   });
 
+  if (!state.namesSet) showSetup(true);
   if (!storageOk) setStatus("Die gespeicherten Buchungen konnten nicht gelesen werden. Ist ein privates Fenster offen?", "warn");
   render();
 

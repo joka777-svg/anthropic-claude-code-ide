@@ -102,6 +102,34 @@ body{margin:0;-webkit-text-size-adjust:100%}
 .ghost:hover{border-color:var(--accent)}
 .warn{background:var(--out-soft);color:var(--out)}
 .ok{background:var(--in-soft);color:var(--in)}
+.seg3{grid-template-columns:1fr 1fr 1fr}
+.seg input:checked+label.p{background:var(--accent-soft);color:var(--accent)}
+.seg label{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.viewtabs{max-width:480px}
+.check{display:flex;align-items:flex-start;gap:8px;font-size:.9rem;cursor:pointer}
+.check input{margin-top:3px;width:18px;height:18px;accent-color:var(--accent);flex:none}
+.check small{display:block;color:var(--muted);font-size:.8rem}
+.split{display:grid;grid-template-columns:minmax(0,1fr) auto auto auto;gap:6px 14px;font-size:.9rem;align-items:baseline}
+.split .h{font-size:.75rem;color:var(--muted);text-align:right}
+.split .h:first-child{text-align:left}
+.split .n{font-weight:600;overflow-wrap:anywhere;min-width:0}
+.split .v{font-family:var(--font-num);font-variant-numeric:tabular-nums;text-align:right;white-space:nowrap}
+.split .v.in{color:var(--in)} .split .v.out{color:var(--out)}
+.split .note{grid-column:1/-1;font-size:.8rem;color:var(--muted)}
+.badge{display:inline-block;font-size:.7rem;font-weight:600;letter-spacing:.03em;padding:1px 6px;border-radius:5px;background:var(--accent-soft);color:var(--accent);margin-left:6px;vertical-align:1px}
+li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
+.fixlist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column}
+.fixlist li{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:2px 10px;padding:9px 0;border-bottom:1px solid var(--line);font-size:.9rem}
+.fixlist li:last-child{border-bottom:0}
+.fixlist .fa{font-family:var(--font-num);font-variant-numeric:tabular-nums;white-space:nowrap}
+.fixlist .fm{font-size:.8rem;color:var(--muted)}
+.fixlist .acts{grid-column:1/-1;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.fixlist .acts input{width:110px;padding:5px 8px;font-family:var(--font-num)}
+.small{border:1px solid var(--line);background:var(--bg);color:var(--fg);border-radius:6px;padding:4px 10px;font-size:.8rem}
+.small:hover{border-color:var(--accent)}
+.small.danger.confirm{background:var(--out);border-color:var(--out);color:#fff}
+.fixsum{font-size:.85rem;color:var(--muted);margin:-4px 0 8px}
+.fixsum b{font-family:var(--font-num);color:var(--fg);font-weight:500}
 </style>
 </head>
 <body>
@@ -115,12 +143,18 @@ body{margin:0;-webkit-text-size-adjust:100%}
     </div>
   </header>
 
+  <div class="seg seg3 viewtabs" role="radiogroup" aria-label="Ansicht">
+    <input type="radio" name="view" id="vAll" value="all" checked><label for="vAll" class="p">Gesamt</label>
+    <input type="radio" name="view" id="vA" value="a"><label for="vA" class="p" id="vALabel">Ich</label>
+    <input type="radio" name="view" id="vB" value="b"><label for="vB" class="p" id="vBLabel">Meine Frau</label>
+  </div>
+
   <div class="status" id="status" hidden></div>
 
   <section class="totals" aria-label="Monatsbilanz">
     <div class="tot in"><div class="lbl">Einnahmen</div><div class="val" id="tIn">0,00 €</div></div>
     <div class="tot out"><div class="lbl">Ausgaben</div><div class="val" id="tOut">0,00 €</div></div>
-    <div class="tot bal"><div class="lbl">Übrig im Monat</div><div class="val" id="tBal">0,00 €</div></div>
+    <div class="tot bal"><div class="lbl" id="tBalLbl">Übrig im Monat</div><div class="val" id="tBal">0,00 €</div></div>
   </section>
 
   <div class="grid">
@@ -132,16 +166,35 @@ body{margin:0;-webkit-text-size-adjust:100%}
             <input type="radio" name="kind" id="kOut" value="out" checked><label for="kOut" class="o">Ausgabe</label>
             <input type="radio" name="kind" id="kIn" value="in"><label for="kIn" class="i">Einnahme</label>
           </div>
+          <div class="field">
+            <label>Wer?</label>
+            <div class="seg seg3" role="radiogroup" aria-label="Person">
+              <input type="radio" name="person" id="pA" value="a" checked><label for="pA" class="p" id="pALabel">Ich</label>
+              <input type="radio" name="person" id="pB" value="b"><label for="pB" class="p" id="pBLabel">Meine Frau</label>
+              <input type="radio" name="person" id="pBoth" value="both"><label for="pBoth" class="p">Gemeinsam</label>
+            </div>
+          </div>
           <div class="row2">
             <div class="field"><label for="amount">Betrag (€)</label><input type="text" inputmode="decimal" id="amount" placeholder="0,00" autocomplete="off"></div>
             <div class="field"><label for="date">Datum</label><input type="date" id="date"></div>
           </div>
           <div class="field"><label for="cat">Kategorie</label><select id="cat"></select></div>
           <div class="field"><label for="note">Beschreibung</label><input type="text" id="note" maxlength="120" placeholder="z. B. Wocheneinkauf Rewe"></div>
-          <div class="field"><label for="who">Bezahlt von / für</label><input type="text" id="who" maxlength="40" placeholder="z. B. Anna, Gemeinsam" list="whoList"><datalist id="whoList"></datalist></div>
+          <label class="check" for="fixed"><input type="checkbox" id="fixed"><span>Fixkosten: jeden Monat gleich<small>Wird ab diesem Monat automatisch jeden Monat eingetragen, z. B. Miete, Handy, Versicherung oder Gehalt.</small></span></label>
           <p class="formmsg" id="formMsg" role="alert"></p>
           <button class="primary" type="submit" id="save">Buchung speichern</button>
         </form>
+      </section>
+
+      <section class="panel" id="splitPanel">
+        <h2>Aufteilung</h2>
+        <div class="split" id="split"></div>
+      </section>
+
+      <section class="panel">
+        <h2>Fixkosten</h2>
+        <p class="fixsum" id="fixSum"></p>
+        <ul class="fixlist" id="fixList"></ul>
       </section>
 
       <section class="panel">
@@ -150,7 +203,11 @@ body{margin:0;-webkit-text-size-adjust:100%}
       </section>
 
       <section class="panel tools">
-        <h2 style="margin:0">Sicherung &amp; Export</h2>
+        <h2 style="margin:0">Einstellungen &amp; Sicherung</h2>
+        <div class="row2">
+          <div class="field"><label for="nameA">Name 1</label><input type="text" id="nameA" maxlength="20"></div>
+          <div class="field"><label for="nameB">Name 2</label><input type="text" id="nameB" maxlength="20"></div>
+        </div>
         <p id="backupInfo">Die Buchungen liegen nur auf diesem Gerät.</p>
         <div class="btnrow">
           <button class="ghost" type="button" id="btnBackup">Sicherung speichern</button>
@@ -169,6 +226,7 @@ body{margin:0;-webkit-text-size-adjust:100%}
           <option value="all">Alle</option>
           <option value="out">Nur Ausgaben</option>
           <option value="in">Nur Einnahmen</option>
+          <option value="fixed">Nur Fixkosten</option>
         </select>
       </div>
       <ul class="entries" id="list"></ul>
@@ -180,7 +238,7 @@ body{margin:0;-webkit-text-size-adjust:100%}
 (function(){
   const KEY = "haushaltsbuch.v1";
   const CATS = {
-    out:["Lebensmittel","Miete & Nebenkosten","Strom & Internet","Versicherungen","Mobilität","Kinder","Gesundheit","Kleidung","Freizeit & Ausgehen","Urlaub","Haushalt","Abos & Verträge","Geschenke","Sparen","Sonstiges"],
+    out:["Lebensmittel","Miete & Nebenkosten","Strom & Internet","Versicherungen","Mobilität","Kinder","Gesundheit","Kleidung","Freizeit & Ausgehen","Urlaub","Haushalt","Abos & Verträge","Handy","Kredit","Geschenke","Sparen","Sonstiges"],
     in:["Gehalt","Kindergeld","Nebenjob","Erstattung","Zinsen","Geschenk","Sonstiges"]
   };
   const eur = new Intl.NumberFormat("de-DE",{style:"currency",currency:"EUR"});
@@ -190,21 +248,36 @@ body{margin:0;-webkit-text-size-adjust:100%}
   const $ = id => document.getElementById(id);
   const pad = n => String(n).padStart(2,"0");
   const todayStr = () => { const d=new Date(); return d.getFullYear()+"-"+pad(d.getMonth()+1)+"-"+pad(d.getDate()); };
+  const isMonth = s => typeof s==="string" && /^\d{4}-\d{2}$/.test(s);
+  const PERSONS = ["a","b","both"];
 
   // ---------- Speicher ----------
-  let state = { entries: [], deleted: [], lastBackup: 0 };
+  // entries: einzelne Buchungen; fixed: Vorlagen für Fixkosten (gelten von "from" bis "to", Monat "YYYY-MM");
+  // skips: ausgesetzte Fixkosten einzelner Monate ("fixId:YYYY-MM")
+  let state = { entries: [], fixed: [], skips: [], deleted: [], names: {a:"Ich", b:"Meine Frau"}, lastBackup: 0 };
   let storageOk = true;
+  const str = (v,n) => String(v==null?"":v).slice(0,n);
+  function cleanPerson(p){ return PERSONS.includes(p) ? p : "a"; }
   function clean(e){
     if (!e || typeof e.amount!=="number" || typeof e.date!=="string" || !/^\d{4}-\d{2}-\d{2}$/.test(e.date) || !e.id) return null;
     return {id:String(e.id), kind:e.kind==="in"?"in":"out", amount:Math.abs(Math.round(e.amount)), date:e.date,
-      cat:String(e.cat||"Sonstiges").slice(0,60), note:String(e.note||"").slice(0,120), who:String(e.who||"").slice(0,40), created:Number(e.created)||0};
+      cat:str(e.cat||"Sonstiges",60), note:str(e.note,120), person:cleanPerson(e.person), created:Number(e.created)||0};
+  }
+  function cleanFixed(f){
+    if (!f || !f.id || typeof f.amount!=="number" || !isMonth(f.from)) return null;
+    const day = Math.min(31, Math.max(1, Math.round(Number(f.day)||1)));
+    return {id:String(f.id), kind:f.kind==="in"?"in":"out", amount:Math.abs(Math.round(f.amount)), cat:str(f.cat||"Sonstiges",60),
+      note:str(f.note,120), person:cleanPerson(f.person), day, from:f.from, to:isMonth(f.to)?f.to:null, created:Number(f.created)||0};
   }
   function load(){
     try {
       const raw = JSON.parse(localStorage.getItem(KEY) || "null");
       if (raw && Array.isArray(raw.entries)) {
         state.entries = raw.entries.map(clean).filter(Boolean);
+        state.fixed = Array.isArray(raw.fixed) ? raw.fixed.map(cleanFixed).filter(Boolean) : [];
+        state.skips = Array.isArray(raw.skips) ? raw.skips.map(String) : [];
         state.deleted = Array.isArray(raw.deleted) ? raw.deleted.map(String).slice(-2000) : [];
+        if (raw.names && typeof raw.names==="object") state.names = {a:str(raw.names.a,20)||"Ich", b:str(raw.names.b,20)||"Meine Frau"};
         state.lastBackup = Number(raw.lastBackup) || 0;
       }
     } catch(_) { storageOk = false; }
@@ -214,16 +287,41 @@ body{margin:0;-webkit-text-size-adjust:100%}
     catch(_) { storageOk = false; setStatus("Speichern auf dem Gerät hat nicht geklappt. Ist der Speicher voll oder ein privates Fenster offen?", "warn"); }
   }
   load();
-  // Safari bitten, die Daten nicht automatisch zu löschen
   try { navigator.storage && navigator.storage.persist && navigator.storage.persist(); } catch(_){}
 
   const newId = () => Date.now().toString(36) + Math.random().toString(36).slice(2,8);
+  const personName = p => p==="both" ? "Gemeinsam" : (state.names[p] || (p==="a"?"Ich":"Meine Frau"));
 
-  // ---------- Anzeige ----------
+  // ---------- Monate ----------
   const now = new Date();
   let ym = {y:now.getFullYear(), m:now.getMonth()};
   const monthKey = () => ym.y+"-"+pad(ym.m+1);
+  const shiftMonth = (mk, n) => { let [y,m] = mk.split("-").map(Number); m += n; while(m<1){m+=12;y--;} while(m>12){m-=12;y++;} return y+"-"+pad(m); };
+  const daysIn = mk => { const [y,m]=mk.split("-").map(Number); return new Date(y,m,0).getDate(); };
   $("date").value = todayStr();
+
+  const view = () => document.querySelector('input[name=view]:checked').value;
+
+  // Anteil einer Buchung in der gewählten Ansicht (Gemeinsames zählt je zur Hälfte)
+  function share(e, v){
+    if (v==="all" || e.person===v) return e.amount;
+    if (e.person==="both") return e.amount/2;
+    return 0;
+  }
+
+  function fixedActive(mk){ return state.fixed.filter(f => f.from<=mk && (!f.to || f.to>=mk)); }
+
+  // Alle Buchungen eines Monats: einzelne + Fixkosten (ausgesetzte mit skipped=true)
+  function monthItems(mk){
+    const items = state.entries.filter(e => e.date.slice(0,7)===mk).map(e => ({...e, fixed:false, skipped:false}));
+    const skips = new Set(state.skips);
+    for (const f of fixedActive(mk)){
+      const sid = f.id+":"+mk;
+      items.push({id:"fx:"+sid, fixId:f.id, kind:f.kind, amount:f.amount, cat:f.cat, note:f.note, person:f.person,
+        date: mk+"-"+pad(Math.min(f.day, daysIn(mk))), created:f.created, fixed:true, skipped:skips.has(sid)});
+    }
+    return items;
+  }
 
   function setStatus(text, cls){ const el=$("status"); el.textContent = text || ""; el.className = "status" + (cls ? " "+cls : ""); el.hidden = !text; }
 
@@ -239,45 +337,90 @@ body{margin:0;-webkit-text-size-adjust:100%}
     s = String(s).trim().replace(/\s|€/g,"");
     if (!s) return NaN;
     if (s.includes(",")) s = s.replace(/\./g,"").replace(",",".");
+    else if (/^\d{1,3}(\.\d{3})+$/.test(s)) s = s.replace(/\./g,""); // 1.200 = tausendzweihundert
     const v = Number(s);
     return Number.isFinite(v) ? Math.round(v*100) : NaN;
   }
+  const fmt = c => eur.format(c/100);
 
-  function monthEntries(){ const mk=monthKey(); return state.entries.filter(e => e.date.slice(0,7)===mk); }
+  function applyNames(){
+    for (const p of ["a","b"]){
+      const n = personName(p);
+      $("v"+p.toUpperCase()+"Label").textContent = n;
+      $("p"+p.toUpperCase()+"Label").textContent = n;
+    }
+    if (document.activeElement !== $("nameA")) $("nameA").value = state.names.a;
+    if (document.activeElement !== $("nameB")) $("nameB").value = state.names.b;
+  }
+
+  function confirmButton(btn, label, action){
+    btn.addEventListener("click", ()=>{
+      if (!btn.classList.contains("confirm")){ btn.classList.add("confirm"); btn.textContent="Wirklich?"; setTimeout(()=>{btn.classList.remove("confirm"); btn.textContent=label;},3000); return; }
+      action();
+    });
+  }
 
   function render(){
+    applyNames();
+    const mk = monthKey(), v = view();
     const d = new Date(ym.y, ym.m, 1);
     $("monthLabel").textContent = monthFmt.format(d);
-    const inMonth = monthEntries();
-    let tin=0, tout=0; const byCat = {};
-    for (const e of inMonth){
-      if (e.kind==="in") tin += e.amount; else { tout += e.amount; byCat[e.cat]=(byCat[e.cat]||0)+e.amount; }
-    }
-    $("tIn").textContent = eur.format(tin/100);
-    $("tOut").textContent = eur.format(tout/100);
-    $("tBal").textContent = eur.format((tin-tout)/100);
-    $("tBal").style.color = tin-tout < 0 ? "var(--out)" : "var(--fg)";
+    const all = monthItems(mk);
+    const counted = all.filter(e => !e.skipped);
 
+    // Summen
+    let tin=0, tout=0; const byCat = {};
+    for (const e of counted){
+      const s = share(e, v); if (!s) continue;
+      if (e.kind==="in") tin += s; else { tout += s; byCat[e.cat]=(byCat[e.cat]||0)+s; }
+    }
+    $("tIn").textContent = fmt(tin);
+    $("tOut").textContent = fmt(tout);
+    $("tBal").textContent = fmt(tin-tout);
+    $("tBal").style.color = tin-tout < 0 ? "var(--out)" : "var(--fg)";
+    $("tBalLbl").textContent = v==="all" ? "Übrig im Monat" : "Übrig bei "+personName(v);
+
+    // Aufteilung je Person
+    const sp = $("split"); sp.textContent = "";
+    for (const h of ["","Einnahmen","Ausgaben","Übrig"]){ const el=document.createElement("span"); el.className="h"; el.textContent=h; sp.appendChild(el); }
+    let hasShared = false;
+    for (const p of ["a","b"]){
+      let i=0,o=0;
+      for (const e of counted){ const s=share(e,p); if (e.person==="both") hasShared=true; if (e.kind==="in") i+=s; else o+=s; }
+      const n=document.createElement("span"); n.className="n"; n.textContent=personName(p);
+      const a=document.createElement("span"); a.className="v in"; a.textContent=fmt(i);
+      const b=document.createElement("span"); b.className="v out"; b.textContent=fmt(o);
+      const c=document.createElement("span"); c.className="v"; c.textContent=fmt(i-o); if (i-o<0) c.style.color="var(--out)";
+      sp.append(n,a,b,c);
+    }
+    if (hasShared){ const note=document.createElement("span"); note.className="note"; note.textContent="Gemeinsame Buchungen sind je zur Hälfte verteilt."; sp.appendChild(note); }
+
+    // Fixkosten-Liste
+    renderFixed(mk, v);
+
+    // Kategorien
     const cats = $("cats"); cats.textContent = "";
     const catList = Object.entries(byCat).sort((a,b)=>b[1]-a[1]);
     if (!catList.length){ const p=document.createElement("p"); p.className="empty"; p.textContent="Noch keine Ausgaben in diesem Monat."; cats.appendChild(p); }
     const max = catList.length ? catList[0][1] : 1;
-    for (const [c,v] of catList){
+    for (const [c,val] of catList){
       const row=document.createElement("div"); row.className="cat";
       const n=document.createElement("span"); n.textContent=c;
-      const a=document.createElement("span"); a.className="amt"; a.textContent=eur.format(v/100)+" · "+Math.round(v/tout*100)+" %";
-      const bar=document.createElement("div"); bar.className="bar"; const i=document.createElement("i"); i.style.width=(v/max*100)+"%"; bar.appendChild(i);
+      const a=document.createElement("span"); a.className="amt"; a.textContent=fmt(val)+" · "+Math.round(val/tout*100)+" %";
+      const bar=document.createElement("div"); bar.className="bar"; const i=document.createElement("i"); i.style.width=(val/max*100)+"%"; bar.appendChild(i);
       row.append(n,a,bar); cats.appendChild(row);
     }
 
+    // Buchungsliste
     const f = $("filter").value;
-    const shown = inMonth.filter(e => f==="all" || e.kind===f)
-      .sort((a,b)=> a.date===b.date ? b.created-a.created : (a.date<b.date?1:-1));
+    const shown = all.filter(e => share(e,v)>0)
+      .filter(e => f==="all" || (f==="fixed" ? e.fixed : e.kind===f))
+      .sort((a,b)=> a.date===b.date ? (a.fixed!==b.fixed ? (a.fixed?-1:1) : b.created-a.created) : (a.date<b.date?1:-1));
     const list = $("list"); list.textContent = "";
     if (!shown.length){
       const li=document.createElement("li"); li.className="emptybox";
-      const s=document.createElement("strong"); s.textContent = inMonth.length ? "Keine passenden Buchungen" : "Noch nichts eingetragen für "+monthFmt.format(d);
-      const t=document.createElement("span"); t.textContent = inMonth.length ? "Ändere den Filter, um alle Buchungen zu sehen." : "Trage die erste Einnahme oder Ausgabe ein, zum Beispiel das Gehalt oder die Miete.";
+      const s=document.createElement("strong"); s.textContent = all.length ? "Keine passenden Buchungen" : "Noch nichts eingetragen für "+monthFmt.format(d);
+      const t=document.createElement("span"); t.textContent = all.length ? "Ändere den Filter oder die Ansicht oben, um mehr zu sehen." : "Trage die erste Einnahme oder Ausgabe ein. Feste Beträge wie Miete oder Gehalt hakst du als Fixkosten an, dann stehen sie jeden Monat drin.";
       li.append(s,t); list.appendChild(li);
     }
     let lastDay = null;
@@ -286,42 +429,121 @@ body{margin:0;-webkit-text-size-adjust:100%}
         lastDay=e.date; const h=document.createElement("li"); h.className="day";
         const [Y,M,D]=e.date.split("-").map(Number); h.textContent=dayFmt.format(new Date(Y,M-1,D)); list.appendChild(h);
       }
-      const li=document.createElement("li"); li.className="e";
+      const li=document.createElement("li"); li.className="e"+(e.skipped?" skipped":"");
       const info=document.createElement("div"); info.style.minWidth="0";
       const t=document.createElement("div"); t.className="t"; t.textContent = e.note || e.cat;
-      const m=document.createElement("div"); m.className="m"; m.textContent = [e.note ? e.cat : null, e.who].filter(Boolean).join(" · ");
-      info.append(t); if (m.textContent) info.append(m);
+      if (e.fixed){ const bd=document.createElement("span"); bd.className="badge"; bd.textContent= e.skipped ? "Fix · ausgesetzt" : "Fix"; t.appendChild(bd); }
+      const meta = [e.note ? e.cat : null, personName(e.person)];
+      if (v!=="all" && e.person==="both") meta.push("deine Hälfte von "+fmt(e.amount));
+      const m=document.createElement("div"); m.className="m"; m.textContent = meta.filter(Boolean).join(" · ");
+      info.append(t,m);
       const a=document.createElement("div"); a.className="a "+(e.kind==="in"?"in":"out");
-      a.textContent=(e.kind==="in"?"+ ":"− ")+eur.format(e.amount/100);
-      const del=document.createElement("button"); del.className="del"; del.type="button"; del.textContent="Löschen";
-      del.setAttribute("aria-label","Buchung löschen: "+(e.note||e.cat));
-      del.addEventListener("click", ()=>{
-        if (!del.classList.contains("confirm")){ del.classList.add("confirm"); del.textContent="Wirklich?"; setTimeout(()=>{del.classList.remove("confirm"); del.textContent="Löschen";},3000); return; }
-        state.entries = state.entries.filter(x=>x.id!==e.id);
-        state.deleted.push(e.id);
-        persist(); render();
-      });
-      li.append(info,a,del); list.appendChild(li);
+      a.textContent=(e.kind==="in"?"+ ":"− ")+fmt(share(e,v));
+      const btn=document.createElement("button"); btn.className="del"; btn.type="button";
+      if (!e.fixed){
+        btn.textContent="Löschen"; btn.setAttribute("aria-label","Buchung löschen: "+(e.note||e.cat));
+        confirmButton(btn, "Löschen", ()=>{ state.entries = state.entries.filter(x=>x.id!==e.id); state.deleted.push(e.id); persist(); render(); });
+      } else if (!e.skipped){
+        btn.textContent="Aussetzen"; btn.setAttribute("aria-label","Nur in diesem Monat aussetzen: "+(e.note||e.cat));
+        confirmButton(btn, "Aussetzen", ()=>{ state.skips.push(e.fixId+":"+mk); persist(); render(); });
+      } else {
+        btn.textContent="Zurückholen"; btn.setAttribute("aria-label","Wieder mitzählen: "+(e.note||e.cat));
+        btn.addEventListener("click", ()=>{ state.skips = state.skips.filter(s=>s!==e.fixId+":"+mk); persist(); render(); });
+      }
+      li.append(info,a,btn); list.appendChild(li);
     }
     renderBackupInfo();
   }
 
-  function updateWhoList(){
-    const names = [...new Set(state.entries.map(e=>e.who).filter(Boolean))].slice(0,20);
-    const dl=$("whoList"); dl.textContent="";
-    for (const n of names){ const o=document.createElement("option"); o.value=n; dl.appendChild(o); }
+  function renderFixed(mk, v){
+    const ul = $("fixList"); ul.textContent = "";
+    const items = fixedActive(mk).filter(f => share(f,v)>0)
+      .sort((a,b)=> a.kind!==b.kind ? (a.kind==="in"?-1:1) : b.amount-a.amount);
+    let outSum = 0, inSum = 0;
+    for (const f of items){ if (f.kind==="in") inSum += share(f,v); else outSum += share(f,v); }
+    $("fixSum").textContent = "";
+    if (!items.length){
+      $("fixSum").textContent = "Noch keine Fixkosten. Hake beim Eintragen „Fixkosten: jeden Monat gleich“ an, z. B. bei Miete, Handy oder Versicherung.";
+      return;
+    }
+    const s1 = document.createElement("span"); s1.textContent = "Fest pro Monat: ";
+    const b1 = document.createElement("b"); b1.textContent = "− "+fmt(outSum);
+    $("fixSum").append(s1,b1);
+    if (inSum){ const s2=document.createElement("span"); s2.textContent=" · Einnahmen "; const b2=document.createElement("b"); b2.textContent="+ "+fmt(inSum); $("fixSum").append(s2,b2); }
+
+    for (const f of items){
+      const li = document.createElement("li");
+      const name = document.createElement("div"); name.style.minWidth="0";
+      const t = document.createElement("div"); t.textContent = f.note || f.cat;
+      const m = document.createElement("div"); m.className="fm";
+      m.textContent = [f.note ? f.cat : null, personName(f.person), "am "+f.day+".", "seit "+monthFmt.format(new Date(+f.from.slice(0,4), +f.from.slice(5)-1, 1))].filter(Boolean).join(" · ");
+      name.append(t,m);
+      const amt = document.createElement("div"); amt.className="fa"; amt.style.color = f.kind==="in" ? "var(--in)" : "var(--out)";
+      amt.textContent = (f.kind==="in"?"+ ":"− ")+fmt(f.amount);
+      const acts = document.createElement("div"); acts.className="acts";
+      const edit = document.createElement("button"); edit.type="button"; edit.className="small"; edit.textContent="Betrag ändern";
+      const end = document.createElement("button"); end.type="button"; end.className="small danger"; end.textContent="Beenden";
+      end.title = "Ab "+monthFmt.format(new Date(ym.y,ym.m,1))+" nicht mehr eintragen";
+      edit.addEventListener("click", ()=>{
+        acts.textContent = "";
+        const inp = document.createElement("input"); inp.type="text"; inp.inputMode="decimal"; inp.value=(f.amount/100).toFixed(2).replace(".",","); inp.setAttribute("aria-label","Neuer Betrag");
+        const ok = document.createElement("button"); ok.type="button"; ok.className="small"; ok.textContent="Ab diesem Monat speichern";
+        const cancel = document.createElement("button"); cancel.type="button"; cancel.className="small"; cancel.textContent="Abbrechen";
+        cancel.addEventListener("click", render);
+        ok.addEventListener("click", ()=>{
+          const a = parseAmount(inp.value);
+          if (!(a>0)) { inp.focus(); return; }
+          changeFixedAmount(f.id, a, mk); render();
+          setStatus("Neuer Betrag gilt ab "+monthFmt.format(new Date(ym.y,ym.m,1))+". Frühere Monate bleiben wie sie waren.", "ok");
+        });
+        inp.addEventListener("keydown", ev=>{ if (ev.key==="Enter") ok.click(); });
+        acts.append(inp, ok, cancel); inp.focus(); inp.select();
+      });
+      confirmButton(end, "Beenden", ()=>{
+        endFixed(f.id, mk); render();
+        setStatus("„"+(f.note||f.cat)+"“ wird ab "+monthFmt.format(new Date(ym.y,ym.m,1))+" nicht mehr eingetragen.", "ok");
+      });
+      acts.append(edit, end);
+      li.append(name, amt, acts); ul.appendChild(li);
+    }
+  }
+
+  // Fixkosten ab Monat mk beenden (bleibt in früheren Monaten erhalten)
+  function endFixed(id, mk){
+    const f = state.fixed.find(x=>x.id===id); if (!f) return;
+    if (f.from >= mk) { state.fixed = state.fixed.filter(x=>x.id!==id); state.deleted.push("fixed:"+id); }
+    else f.to = shiftMonth(mk,-1);
+    persist();
+  }
+  // Betrag ab Monat mk ändern: alte Vorlage endet im Vormonat, neue beginnt in mk
+  function changeFixedAmount(id, amount, mk){
+    const f = state.fixed.find(x=>x.id===id); if (!f) return;
+    if (f.from >= mk) { f.amount = amount; }
+    else {
+      const nf = {...f, id:newId(), amount, from:mk, created:Date.now()};
+      f.to = shiftMonth(mk,-1);
+      state.fixed.push(nf);
+    }
+    persist();
   }
 
   function renderBackupInfo(){
-    const n = state.entries.length;
+    const n = state.entries.length, k = state.fixed.length;
     const el = $("backupInfo");
-    if (!state.lastBackup) el.textContent = n ? n+" Buchungen, nur auf diesem Gerät gespeichert. Noch keine Sicherung gemacht." : "Die Buchungen liegen nur auf diesem Gerät.";
-    else el.textContent = n+" Buchungen auf diesem Gerät. Letzte Sicherung: "+dateFmt.format(new Date(state.lastBackup))+".";
+    const what = n+(n===1?" Buchung":" Buchungen")+" und "+k+" Fixkosten";
+    if (!state.lastBackup) el.textContent = (n||k) ? what+", nur auf diesem Gerät gespeichert. Noch keine Sicherung gemacht." : "Die Buchungen liegen nur auf diesem Gerät.";
+    else el.textContent = what+" auf diesem Gerät. Letzte Sicherung: "+dateFmt.format(new Date(state.lastBackup))+".";
     const days = state.lastBackup ? (Date.now()-state.lastBackup)/864e5 : Infinity;
-    if (n >= 10 && days > 30 && $("status").hidden) setStatus("Mach mal wieder eine Sicherung (unten bei „Sicherung & Export“) und leg sie in iCloud Drive ab.", "");
+    if (n+k >= 10 && days > 30 && $("status").hidden) setStatus("Mach mal wieder eine Sicherung (unten bei „Einstellungen & Sicherung“) und leg sie in iCloud Drive ab.", "");
   }
 
   // ---------- Erfassen ----------
+  $("fixed").addEventListener("change", ()=>{ $("save").textContent = $("fixed").checked ? "Fixkosten anlegen" : "Buchung speichern"; });
+  document.querySelectorAll('input[name=view]').forEach(r => r.addEventListener("change", ()=>{
+    const v = view(); if (v!=="all") { const el = $("p"+v.toUpperCase()); if (el) el.checked = true; }
+    render();
+  }));
+
   $("form").addEventListener("submit", ev=>{
     ev.preventDefault();
     const msg=$("formMsg"); msg.textContent="";
@@ -329,22 +551,30 @@ body{margin:0;-webkit-text-size-adjust:100%}
     if (!(amount>0)){ msg.textContent="Bitte einen Betrag größer als 0 eingeben, z. B. 42,50."; $("amount").focus(); return; }
     const date = $("date").value;
     if (!/^\d{4}-\d{2}-\d{2}$/.test(date)){ msg.textContent="Bitte ein Datum wählen."; $("date").focus(); return; }
-    state.entries.push({
+    const base = {
       id:newId(), kind: document.querySelector('input[name=kind]:checked').value,
-      amount, date, cat: $("cat").value,
-      note: $("note").value.trim().slice(0,120), who: $("who").value.trim().slice(0,40),
-      created: Date.now()
-    });
+      amount, cat: $("cat").value, note: $("note").value.trim().slice(0,120),
+      person: document.querySelector('input[name=person]:checked').value, created: Date.now()
+    };
+    const isFixed = $("fixed").checked;
+    if (isFixed) state.fixed.push({...base, day:Number(date.slice(8,10)), from:date.slice(0,7), to:null});
+    else state.entries.push({...base, date});
     persist();
-    $("amount").value=""; $("note").value="";
+    $("amount").value=""; $("note").value=""; $("fixed").checked=false;
     const [Y,M]=date.split("-").map(Number); ym={y:Y,m:M-1};
-    updateWhoList(); render();
-    const btn=$("save"); btn.textContent="Gespeichert ✓"; setTimeout(()=>{ btn.textContent="Buchung speichern"; }, 1200);
+    render();
+    const btn=$("save"); btn.textContent= isFixed ? "Fixkosten angelegt ✓" : "Gespeichert ✓";
+    setTimeout(()=>{ btn.textContent="Buchung speichern"; }, 1400);
   });
 
   $("prev").addEventListener("click", ()=>{ ym.m--; if(ym.m<0){ym.m=11;ym.y--;} render(); });
   $("next").addEventListener("click", ()=>{ ym.m++; if(ym.m>11){ym.m=0;ym.y++;} render(); });
   $("filter").addEventListener("change", render);
+
+  for (const p of ["a","b"]){
+    const inp = $("name"+p.toUpperCase());
+    inp.addEventListener("change", ()=>{ state.names[p] = inp.value.trim().slice(0,20) || (p==="a"?"Ich":"Meine Frau"); persist(); render(); });
+  }
 
   // ---------- Dateien teilen / speichern ----------
   async function shareFile(filename, text, type){
@@ -360,46 +590,58 @@ body{margin:0;-webkit-text-size-adjust:100%}
   }
 
   $("btnBackup").addEventListener("click", async ()=>{
-    const data = JSON.stringify({app:"haushaltsbuch", version:1, exported:new Date().toISOString(), entries:state.entries, deleted:state.deleted}, null, 1);
+    const data = JSON.stringify({app:"haushaltsbuch", version:2, exported:new Date().toISOString(),
+      names:state.names, entries:state.entries, fixed:state.fixed, skips:state.skips, deleted:state.deleted}, null, 1);
     const ok = await shareFile("Haushaltsbuch-Sicherung-"+todayStr()+".json", data, "application/json");
     if (ok){ state.lastBackup = Date.now(); persist(); setStatus("Sicherung erstellt. Speichere sie am besten in „Dateien“ → iCloud Drive.", "ok"); render(); }
   });
 
   $("btnRestore").addEventListener("click", ()=>$("fileIn").click());
   $("fileIn").addEventListener("change", async ()=>{
-    const f = $("fileIn").files[0]; $("fileIn").value = "";
-    if (!f) return;
+    const file = $("fileIn").files[0]; $("fileIn").value = "";
+    if (!file) return;
     try {
-      const raw = JSON.parse(await f.text());
+      const raw = JSON.parse(await file.text());
       if (!raw || raw.app!=="haushaltsbuch" || !Array.isArray(raw.entries)) throw new Error("format");
       const gone = new Set([...state.deleted, ...(Array.isArray(raw.deleted)?raw.deleted.map(String):[])]);
+      // Buchungen
       const byId = new Map(state.entries.map(e=>[e.id,e]));
       let added = 0;
       for (const e of raw.entries.map(clean).filter(Boolean)) { if (!byId.has(e.id) && !gone.has(e.id)) { byId.set(e.id,e); added++; } }
-      const before = state.entries.length;
       state.entries = [...byId.values()].filter(e=>!gone.has(e.id));
+      // Fixkosten: gleiche Vorlage -> frühestes Ende gewinnt
+      const fx = new Map(state.fixed.map(f=>[f.id,f]));
+      let addedF = 0;
+      for (const f of (Array.isArray(raw.fixed)?raw.fixed:[]).map(cleanFixed).filter(Boolean)) {
+        if (gone.has("fixed:"+f.id)) continue;
+        const mine = fx.get(f.id);
+        if (!mine) { fx.set(f.id,f); addedF++; }
+        else if (f.to && (!mine.to || f.to < mine.to)) mine.to = f.to;
+      }
+      state.fixed = [...fx.values()].filter(f=>!gone.has("fixed:"+f.id));
+      state.skips = [...new Set([...state.skips, ...(Array.isArray(raw.skips)?raw.skips.map(String):[])])];
       state.deleted = [...gone].slice(-2000);
-      const removed = before + added - state.entries.length;
-      persist(); updateWhoList(); render();
-      setStatus(added+" Buchungen hinzugefügt"+(removed>0 ? ", "+removed+" gelöschte entfernt" : "")+". Doppelte wurden übersprungen.", "ok");
+      persist(); render();
+      setStatus(added+" Buchungen und "+addedF+" Fixkosten hinzugefügt. Doppelte wurden übersprungen.", "ok");
     } catch(_) {
       setStatus("Diese Datei ist keine Haushaltsbuch-Sicherung. Wähle eine Datei, die mit „Haushaltsbuch-Sicherung“ beginnt.", "warn");
     }
   });
 
   $("btnCsv").addEventListener("click", ()=>{
-    const rows = monthEntries().sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
+    const mk = monthKey();
+    const rows = monthItems(mk).filter(e=>!e.skipped).sort((a,b)=>a.date<b.date?-1:a.date>b.date?1:0);
     const q = s => '"'+String(s).replace(/"/g,'""')+'"';
-    const lines = ["Datum;Art;Kategorie;Beschreibung;Person;Betrag"];
+    const lines = ["Datum;Art;Fix;Person;Kategorie;Beschreibung;Betrag"];
     for (const e of rows){
       const [Y,M,D] = e.date.split("-");
-      lines.push([D+"."+M+"."+Y, e.kind==="in"?"Einnahme":"Ausgabe", q(e.cat), q(e.note), q(e.who), ((e.kind==="in"?1:-1)*e.amount/100).toFixed(2).replace(".",",")].join(";"));
+      lines.push([D+"."+M+"."+Y, e.kind==="in"?"Einnahme":"Ausgabe", e.fixed?"ja":"nein", q(personName(e.person)), q(e.cat), q(e.note), ((e.kind==="in"?1:-1)*e.amount/100).toFixed(2).replace(".",",")].join(";"));
     }
-    shareFile("Haushaltsbuch-"+monthKey()+".csv", "﻿"+lines.join("\r\n"), "text/csv");
+    shareFile("Haushaltsbuch-"+mk+".csv", "﻿"+lines.join("\r\n"), "text/csv");
   });
 
   if (!storageOk) setStatus("Die gespeicherten Buchungen konnten nicht gelesen werden. Ist ein privates Fenster offen?", "warn");
-  updateWhoList(); render();
+  render();
 
   if ("serviceWorker" in navigator) navigator.serviceWorker.register("sw.js").catch(()=>{});
 })();

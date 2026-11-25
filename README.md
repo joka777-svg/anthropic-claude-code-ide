@@ -4,7 +4,8 @@ Web-App für iPhone und iPad, mit der ihr Einnahmen und Ausgaben aufschreibt. Si
 
 ## Funktionen
 
-- **Buchungen:** Ausgabe oder Einnahme, Betrag, Datum, Kategorie, Beschreibung und Person („bezahlt von / für“).
+- **Getrennt nach Person:** Jede Buchung gehört zu Person 1, Person 2 oder „Gemeinsam“ (zählt je zur Hälfte). Oben umschalten zwischen Gesamt und den beiden Personen; die Namen lassen sich ändern.
+- **Fixkosten:** Beim Eintragen „Fixkosten: jeden Monat gleich“ anhaken. Sie stehen dann jeden Monat einzeln in der Liste. Betrag ändern gilt ab dem gewählten Monat, „Aussetzen“ nur für einen Monat, „Beenden“ ab dem gewählten Monat.
 - **Monatsbilanz:** Einnahmen, Ausgaben und was übrig bleibt, Monat für Monat.
 - **Ausgaben nach Kategorie** mit Anteil in Prozent.
 - **Sicherung:** speichert alle Buchungen als JSON-Datei über das Teilen-Menü (Dateien, AirDrop, Mail).

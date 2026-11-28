@@ -715,8 +715,14 @@ li.e.skipped .t,li.e.skipped .a{text-decoration:line-through;opacity:.55}
     setTimeout(()=>{ btn.textContent="Buchung speichern"; }, 1400);
   });
 
-  $("prev").addEventListener("click", ()=>{ ym.m--; if(ym.m<0){ym.m=11;ym.y--;} render(); });
-  $("next").addEventListener("click", ()=>{ ym.m++; if(ym.m>11){ym.m=0;ym.y++;} render(); });
+  // Beim Monatswechsel das Datum im Formular in den gewählten Monat legen,
+  // damit neue Buchungen dort landen (im aktuellen Monat: heute, sonst gleicher Tag, höchstens Monatsende)
+  function syncFormDate(){
+    const mk = monthKey(), t = todayStr();
+    $("date").value = t.slice(0,7)===mk ? t : mk+"-"+pad(Math.min(Number(t.slice(8,10)), daysIn(mk)));
+  }
+  $("prev").addEventListener("click", ()=>{ ym.m--; if(ym.m<0){ym.m=11;ym.y--;} syncFormDate(); render(); });
+  $("next").addEventListener("click", ()=>{ ym.m++; if(ym.m>11){ym.m=0;ym.y++;} syncFormDate(); render(); });
   $("filter").addEventListener("change", render);
 
   for (const p of ["a","b"]){

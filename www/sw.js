@@ -1,5 +1,5 @@
 // Offline-Cache: Die App startet auch ohne Internet.
-const CACHE = 'haushaltsbuch-v3';
+const CACHE = 'haushaltsbuch-v4';
 const FILES = ['./', './index.html', './manifest.webmanifest',
   './icons/icon-180.png', './icons/icon-192.png', './icons/icon-512.png'];
 
